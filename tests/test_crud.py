@@ -5,18 +5,50 @@ from app.database import Base
 from sqlalchemy.orm import Session
 from app import crud, models
 from datetime import datetime, timedelta, timezone
+import os
+from dotenv import load_dotenv
+import time
+import psycopg2
+
+load_dotenv('.env.test')
+
+def wait_for_db(max_retries=30, delay_seconds=1):
+    retries = 0
+    while retries < max_retries:
+        try:
+            conn = psycopg2.connect(os.getenv('DATABASE_URL'))
+            conn.close()
+            print("Database is ready!")
+            return
+        except psycopg2.OperationalError:
+            retries += 1
+            print(f"Waiting for database... (Attempt {retries}/{max_retries})")
+            time.sleep(delay_seconds)
+    raise Exception("Could not connect to the database")
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_db():
+    wait_for_db()
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(DATABASE_URL)
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture(scope="function")
 def db():
-    engine = create_engine("sqlite:///./test.db", connect_args={"check_same_thread": False})
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(DATABASE_URL)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
-        Base.metadata.drop_all(bind=engine)
 
 def test_get_recommendations(db: Session):
     location = models.Location(longitude=0, latitude=0)

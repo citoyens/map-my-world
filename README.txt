@@ -4,41 +4,45 @@ This project is a REST API for managing locations and categories, and providing 
 
 ## Prerequisites
 
-- Python 3.8+
-- pip
-- virtualenv (recommended)
+- Docker and Docker Compose
+- (Optional for local development) Python 3.8+, pip, virtualenv, and PostgreSQL
 
-## Setup
+## Setup with Docker
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/map-my-world-api.git
-   cd map-my-world-api
+   git clone https://github.com/citoyens/map-my-world
+   cd map-my-world
    ```
 
-2. Create and activate a virtual environment:
+2. Create a `.env.test` file in the root directory with the following content:
    ```
-   python -m venv env
-   source env/bin/activate  # On Windows use `env\Scripts\activate`
-   ```
-
-3. Install the required packages:
-   ```
-   pip install -r requirements.txt
+   DATABASE_URL=postgresql://test_user:test_password@db:5432/test_db
    ```
 
-4. Set up your environment variables in a `.env` file:
+3. Build and run the Docker containers:
    ```
-   DATABASE_USERNAME=your_username
-   DATABASE_PASSWORD=your_password
-   DATABASE_HOST=your_host
-   DATABASE_PORT=your_port
-   DATABASE_NAME=your_database_name
+   docker-compose up --build
    ```
+
+This will start the PostgreSQL database and the application, and run the tests automatically.
+
+## Local Setup (without Docker)
+
+1. Follow steps 1-4 from the "Setup" section in the original README.
 
 ## Running the Application
 
-To run the application, use the following command:
+### With Docker
+
+The application runs automatically when you use `docker-compose up`. To run it separately:
+
+```
+docker-compose up db -d
+docker-compose run --rm app uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### Without Docker
 
 ```
 uvicorn app.main:app --reload
@@ -48,17 +52,22 @@ The API will be available at `http://127.0.0.1:8000`.
 
 ## Running Tests
 
-To run the tests, use the following command:
+### With Docker
+
+Tests run automatically when you use `docker-compose up`. To run them separately:
+
+```
+docker-compose down -v
+docker-compose run --rm app pytest
+```
+
+### Without Docker
 
 ```
 pytest
 ```
 
-For more detailed output, use:
-
-```
-pytest -v
-```
+For more detailed output, use `pytest -v`.
 
 ## API Documentation
 
@@ -88,7 +97,10 @@ map_my_world/
 │   ├── __init__.py
 │   └── test_crud.py
 ├── .env
+├── .env.test
 ├── .gitignore
+├── docker-compose.yml
+├── Dockerfile
 ├── requirements.txt
 ├── pytest.ini
 └── README.md

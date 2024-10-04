@@ -3,27 +3,32 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 import os
 
+# Load environment variables from .env file
 load_dotenv()
 
-def get_env_variable(var_name: str) -> str:
-    value = os.getenv(var_name)
-    if value is None:
-        raise ValueError(f"Environment variable {var_name} is not set")
-    return value
+# Get the DATABASE_URL from environment variables
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-DATABASE_USERNAME = get_env_variable('DATABASE_USERNAME')
-DATABASE_PASSWORD = get_env_variable('DATABASE_PASSWORD')
-DATABASE_HOST = get_env_variable('DATABASE_HOST')
-DATABASE_PORT = get_env_variable('DATABASE_PORT')
-DATABASE_NAME = get_env_variable('DATABASE_NAME')
+# Convert postgres:// to postgresql:// if necessary
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-DATABASE_URL = f"mysql+pymysql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_NAME}"
+# Create the SQLAlchemy engine
+engine = create_engine(DATABASE_URL)
 
-engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+# Create a SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create a Base class
 Base = declarative_base()
 
 def get_db():
+    """
+    Dependency function to get a database session.
+
+    Yields:
+        Session: A SQLAlchemy Session object.
+    """
     db = SessionLocal()
     try:
         yield db
